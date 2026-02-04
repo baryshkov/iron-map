@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Карта памяти (Осетии)</title>
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/98.css"
+    >
+    <script src="tailwind.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-size: 20px;
+        }
+
+        body {
+            background: #000;
+            font-family: "Georgia", serif;
+            background-repeat: repeat;
+            color: black;
+            min-height: 100vh;
+            overflow-x: hidden;
+            backdrop-filter: blur(1px);
+        }
+
+        .cont {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Панель навигации */
+        .sidebar {
+            overflow: hidden;
+            width: 350px;
+            border-color: black;
+            border-style: solid;
+            border-width: 03.5px;
+            border-radius: 03px;
+            overflow-y: auto;
+            box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .logo {
+            text-align: center;
+        }
+
+        .logo h1 {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo h1 i {
+            color: #ff6b6b;
+        }
+
+        .logo p {
+            color: #b86dca;
+            font-size: 16px;
+            font-style: italic;
+        }
+
+        /* Карта - занимает всё оставшееся пространство */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Контролы карты */
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .map-controls button {
+            background: rgba(25, 25, 40, 0.9);
+            color: white;
+            border: 1px solid #3949ab;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            min-width: 180px;
+        }
+
+        .map-controls button:hover {
+            background: #3949ab;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(57, 73, 171, 0.4);
+        }
+
+        .map-controls button.active {
+            background: #3949ab;
+            border-color: #5c6bc0;
+        }
+
+        /* Список мест */
+        .locations-list {
+            margin-top: 20px;
+        }
+
+        .location-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(57, 73, 171, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .location-item:hover {
+            background: rgba(57, 73, 171, 0.2);
+            transform: translateX(5px);
+            border-color: #3949ab;
+        }
+
+        .location-item h3 {
+            color: #8a9eff;
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .location-item p {
+            color: #b0b9ff;
+            font-size: 18px;
+            line-height: 1.4;
+        }
+
+        /* Форма добавления воспоминаний */
+        .memory-form-container {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            margin-top: 30px;
+            border-image: linear-gradient(#9575cd, #90caf9, #aed581, #fff9c4, #ffb74d, #ff80ab) 30;
+            border-style: solid;
+            border-width: 03.5px;
+            border-radius: 03px;
+
+        }
+
+        .memory-form-container h3 {
+            color: #8a9eff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid white;
+            border-radius: 6px;
+            font-size: 18px;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #ff5252 0%, #ff7b7b 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1a1a2e;
+            border: 1px solid #3949ab;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #ff6b6b;
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-modal:hover {
+            color: white;
+        }
+
+        /* Вкладки админки */
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3949ab;
+            padding-bottom: 10px;
+        }
+
+        .admin-tabs button {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #8a9eff;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+
+        .admin-tabs button.active {
+            background: #3949ab;
+            color: white;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 400px;
+                border-right: none;
+                border-bottom: 1px solid #3949ab;
+            }
+
+            #map {
+                height: calc(100vh - 400px);
+            }
+
+            .map-controls {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .map-controls button {
+                min-width: auto;
+            }
+        }
+
+        /* Стили для маркеров */
+        .custom-marker {
+            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+        }
+
+        .marker-icon {
+            width: 40px !important;
+            height: 40px !important;
+            border-radius: 50%;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            border: 3px solid white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Панель информации */
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(25, 25, 40, 0.9);
+            border: 1px solid #3949ab;
+            border-radius: 8px;
+            padding: 15px;
+            width: 300px;
+            color: white;
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .info-panel h3 {
+            color: #8a9eff;
+            margin-bottom: 10px;
+        }
+
+        /* Сообщения */
+        .message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            z-index: 3000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Кнопки действий */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-edit:hover,
+        .btn-delete:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .marker-icon {
+            font-size: 22px;
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .marker-icon.selected {
+            color: #f59e0b; /* bright, obvious */
+        }
+    </style>
+    <style>
+        /* Small helper so the modal overlay covers underneath while keeping markup simple */
+        /* No external CSS files — this tiny block is allowed inline */
+        /* Ensure video fits container with object-cover behavior */
+        video.object-cover {
+            object-fit: cover;
+        }
+    </style>
+    <style>
+        .avatar-ring {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background:
+                    conic-gradient(
+                            from 0deg,
+                            #ffffff,
+                            #ffd800,
+                            #ff0101,
+                            #ffb200,
+                            #ffffff
+                    );
+            animation: spin 2s linear infinite;
+
+            /* punch a hole inside to make it a border */
+            -webkit-mask: radial-gradient(circle, transparent 62%, black 63%);
+            mask: radial-gradient(circle, transparent 62%, black 63%);
+        }
+        .avatar-ring-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background:
+                    conic-gradient(
+                            from 0deg,
+                            #ffffff,
+                            #ffd800,
+                            #ff0101,
+                            #ffb200,
+                            #ffffff
+                    );
+            animation: spin 2s linear infinite;
+
+            /* punch a hole inside to make it a border */
+            -webkit-mask: radial-gradient(circle, transparent 62%, black 63%);
+            mask: radial-gradient(circle, transparent 62%, black 63%);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="captureCanvas" class="hidden" aria-hidden="true"></canvas>
+<div class="cont">
+    <!-- Боковая панель -->
+    <div class="sidebar">
+        <div class="logo mb-5">
+            <h1><img src="images/ossetia.gif" class="w-[200px] h-[200px] mb-2"> Карта памяти (Осетии)</h1>
+            <p>Личные истории и коллективные воспоминания о родине – добавь своё!!</p>
+        </div>
+
+        <img src="images/Animation.gif" style="width: 350px; max-width: fit-content" class="w-[400px]">
+
+        <!-- Список мест -->
+        <div class="locations-list" id="locations-list">
+            <!-- Места загружаются через JavaScript -->
+        </div>
+
+        <!-- Форма добавления точки -->
+        <div class="memory-form-container">
+            <form id="new-place-form">
+                <div class="form-group">
+                    <input
+                            type="text"
+                            id="place-title"
+                            placeholder="название места"
+                            required
+                    />
+                </div>
+                <div class="form-group">
+                    <input
+                            type="text"
+                            id="name"
+                            placeholder="твоё имя"
+                            required
+                    />
+                </div>
+                <div class="form-group">
+              <textarea
+                      id="place-description"
+                      placeholder="история этого места"
+                      required
+              ></textarea>
+                </div>
+                <div class="form-group">
+                    <input
+                            style="background-color: rgba(0, 255, 255, 0.1); padding-top: 20px; padding-bottom: 20px;
+padding-left: 10px; padding-right: 10px; cursor: pointer;"
+                            type="text"
+                            id="place-coords"
+                            placeholder="добавить точку!"
+                            readonly
+                    />
+                </div>
+                <div class="form-group mt-5" style="display: flex; justify-content: space-between">
+                    <i class="fas fa-home marker-icon selected"></i>
+                    <i class="fas fa-heart marker-icon"></i>
+                    <i class="fas fa-mountain marker-icon"></i>
+                    <i class="fas fa-tree marker-icon"></i>
+                    <i class="fas fa-landmark marker-icon"></i>
+                    <i class="fas fa-history marker-icon"></i>
+                </div>
+
+                <select id="place-icon" name="markerType" hidden>
+                    <option value="home">home</option>
+                    <option value="heart">heart</option>
+                    <option value="mountain">mountain</option>
+                    <option value="tree">tree</option>
+                    <option value="landmark">landmark</option>
+                    <option value="history">history</option>
+                </select>
+                <div class="form-group ">
+                    цвет: <input type="color" id="place-color" value="#ff6b6b"/>
+                </div>
+
+                <button type="button" id="openModalBtn" class="block p-10 m-10 pointer">
+                    <img src="images/camera.gif">
+                </button>
+
+                <div id="output" class="mt-8 flex items-start gap-4 flex-wrap"></div>
+
+                <br/>
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-plus"></i> добавить место
+                </button>
+            </form>
+        </div>
+
+        <!-- Кнопка управления -->
+        <div style="margin-top: 20px">
+            <button
+                    class="submit-btn hidden"
+                    id="admin-toggle"
+                    style="
+              background: linear-gradient(135deg, #3949ab 0%, #5c6bc0 100%);
+            "
+            >
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Карта -->
+    <div class="map-container">
+        <div id="map" class="z-10"></div>
+
+        <!-- Modal (must remain in DOM; toggled via hidden / flex) -->
+        <div id="avatarModal"
+             class="hidden fixed inset-0 z-50 items-center justify-center"
+             aria-hidden="true"
+             role="dialog"
+             aria-modal="true"
+        >
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-black bg-opacity-80"></div>
+
+            <!-- Modal content -->
+            <div class="relative z-10 w-11/12 max-w-4xl bg-gray-900 text-white rounded-2xl p-6 flex flex-col items-center">
+                <h2 class="text-xl font-semibold mb-4">Улыбнись</h2>
+
+                <!-- Circular preview container -->
+                <div id="videoContainer"
+                     class="w-80 h-80 rounded-full overflow-hidden bg-black flex items-center justify-center"
+                     aria-hidden="false"
+                >
+                    <video id="cameraVideo"
+                           autoplay
+                           playsinline
+                           muted
+                           class="w-full h-full object-cover"
+                           aria-label="webcam preview"></video>
+                </div>
+
+                <!-- Buttons -->
+                <div class="mt-6 flex gap-3 ">
+                    <button id="captureBtn" class="px-4 py-2 ">
+                        сфотать
+                    </button>
+
+                    <button id="closeBtn" class="px-4 py-2 bg-red-500">
+                        закрыть
+                    </button>
+                </div>
+
+                <p id="modalError" class="mt-3 text-sm text-red-400 hidden"></p>
+            </div>
+        </div>
+
+        <!-- Элементы управления картой -->
+        <div class="map-controls">
+            <button id="satellite-view" class="active">
+                <i class="fas fa-satellite"></i> $путник
+            </button>
+            <button id="map-view"><i class="fas fa-map"></i> kарта</button>
+            <button id="show-all">
+                <i class="fas fa-globe"></i> хочу позырить все
+            </button>
+            <button id="add-marker">
+                <i class="fas fa-plus"></i> зафигачить своё воспоминание
+            </button>
+        </div>
+
+        <!-- Панель информации -->
+        <div class="info-panel" id="info-panel" style="display: none">
+            <h3 id="info-title"></h3>
+            <p id="info-description"></p>
+            <div class="action-buttons">
+                <button class="btn-edit" id="edit-location">
+                    <i class="fas fa-edit"></i> изменить
+                </button>
+                <button class="btn-delete" id="delete-location">
+                    <i class="fas fa-trash"></i> ой не, удалить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно админки -->
+<div class="modal" id="admin-modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2><i class="fas fa-cog"></i> управление картой</h2>
+
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="places">места</button>
+            <button class="tab-btn" data-tab="memories">воспоминания</button>
+            <button class="tab-btn" data-tab="new">новое место</button>
+        </div>
+
+        <div class="tab-content active" id="places-tab">
+            <h3>места</h3>
+            <div id="admin-places-list"></div>
+        </div>
+
+        <div class="tab-content" id="memories-tab">
+            <h3>воспоминания зрительниц</h3>
+            <div id="admin-memories-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно деталей -->
+<div class="modal" id="details-modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <div id="details-content"></div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+    // Глобальные переменные
+    let map;
+    let markers = {};
+    let places = [];
+    let currentLayer = "satellite";
+    let isAddingMarker = false;
+    let currentMarker = null;
+
+    const icons = document.querySelectorAll('.marker-icon');
+    const select = document.getElementById('place-icon');
+    const coordsButton = document.getElementById('place-coords');
+
+
+    icons.forEach(icon => {
+        icon.addEventListener('click', function () {
+
+            // remove selection from others
+            icons.forEach(i => i.classList.remove('selected'));
+
+            // mark this one
+            icon.classList.add('selected');
+
+            // find class starting with "fa-"
+            const faClass = Array.from(icon.classList)
+                .find(cls => cls.startsWith('fa-') && cls !== 'fas');
+
+            if (!faClass) return;
+
+            // strip "fa-" prefix
+            const value = faClass.replace('fa-', '');
+
+            console.log(value);
+            // set hidden select value
+            select.value = value;
+        });
+    });
+
+    // Инициализация карты
+    function initMap() {
+        // Центрируем на Северной Осетии
+        map = L.map("map").setView([43.0, 44.2], 9);
+
+        // Спутниковый слой (основной)
+        const satelliteLayer = L.tileLayer(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            {
+                attribution: "© Esri, Maxar, Earthstar Geographics",
+                maxZoom: 19,
+            }
+        );
+
+        // Обычная карта
+        const mapLayer = L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution: "© OpenStreetMap contributors",
+                maxZoom: 19,
+            }
+        );
+
+        // Добавляем спутниковый слой по умолчанию
+        satelliteLayer.addTo(map);
+
+        // Сохраняем слои
+        window.mapLayers = {
+            satellite: satelliteLayer,
+            map: mapLayer,
+        };
+
+        // Загружаем данные
+        loadPlaces();
+        setupEventListeners();
+        document.querySelector(".leaflet-control-attribution").remove()
+
+
+        // Добавляем обработчик клика по карте для добавления меток
+        map.on("click", function (e) {
+            if (isAddingMarker) {
+                addNewMarker(e.latlng);
+            }
+        });
+        map.invalidateSize();
+    }
+
+    async function loadPlaces() {
+        const res = await fetch('http://localhost:3000/places');
+        const data = await res.json();
+        places = data;
+        addMarkersToMap(places);
+    }
+
+    // // Функция сохранения
+    // function savePlaces() {
+    //     localStorage.setItem("north_ossetia_places", JSON.stringify(places));
+    // }
+
+    // Добавление маркеров на карту
+    function addMarkersToMap() {
+        // Очищаем старые маркеры
+        Object.values(markers).forEach((marker) => {
+            if (marker && map) map.removeLayer(marker);
+        });
+        markers = {};
+
+        // Создаём новые маркеры
+        places.forEach((place) => {
+            const marker = createMarker(place);
+            markers[place.id] = marker;
+        });
+    }
+
+
+    // Создание маркера
+    function createMarker(place) {
+        // Создаём кастомную иконку
+        function createMarkerHtml(place) {
+            let avatarHtml = '';
+            const isAvatar = place.avatar;
+            if (isAvatar) {
+                avatarHtml = `<img class="w-[100px] h-[100px] rounded-full border-[4px] border-[${place.color}]" src="${place.avatar}" alt="${place.name}" />`;
+            }
+
+            return `<div>
+                        ${avatarHtml}
+                        <div class="absolute ${isAvatar ? '-mt-8 ml-14' : ''} marker-icon" style="background: ${place.color};">
+                          <i class=" fas fa-${place.icon}"></i>
+                        </div>
+                    </div>`;
+                    }
+
+        const icon = L.divIcon({
+            html: createMarkerHtml(place),
+            className: "custom-marker",
+            iconSize: [40, 40],
+            iconAnchor: [20, 0],
+        });
+
+
+        // Создаём маркер
+        const marker = L.marker(place.coordinates, {icon}).addTo(map)
+            .bindPopup(`
+                          <div style="min-width: 200px;">
+                              <h3 style="color: ${
+                place.color
+            }; margin: 0 0 10px 0;">
+                                  <i class="fas fa-${place.icon}"></i> ${
+                place.title
+            }
+                              </h3>
+                              <div><b>${place.name}:</b></div>
+                              <p style="margin: 0 0 10px 0; color: #333;">${place.description}</p>
+                          </div>
+                      `);
+
+        // Добавляем обработчики событий
+        marker.on("click", function (e) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+        });
+
+        marker.on("contextmenu", function (e) {
+            e.originalEvent.preventDefault();
+            showInfoPanel(place);
+        });
+
+        return marker;
+    }
+
+    // Настройка обработчиков событий
+    function setupEventListeners() {
+        // Переключение слоев карты
+        document.getElementById("satellite-view").onclick = () => {
+            switchLayer("satellite");
+        };
+
+        document.getElementById("map-view").onclick = () => {
+            switchLayer("map");
+        };
+
+        // Показать все маркеры
+        document.getElementById("show-all").onclick = () => {
+            const bounds = L.latLngBounds(
+                Object.values(markers).map((m) => m.getLatLng())
+            );
+            map.fitBounds(bounds, {padding: [50, 50]});
+        };
+
+        const onAddMarker = () => {
+            isAddingMarker = !isAddingMarker;
+            const btn = document.getElementById("add-marker");
+            if (isAddingMarker) {
+                btn.innerHTML = '<i class="fas fa-times"></i> Отменить';
+                btn.style.background =
+                    "linear-gradient(135deg, #e74c3c 0%, #ff6b6b 100%)";
+                showMessage(
+                    "Кликните на карте, чтобы добавить новое место",
+                    "info"
+                );
+            } else {
+                btn.innerHTML = '<i class="fas fa-plus"></i> зафигачить своё воспоминание';
+                btn.style.background = "";
+                if (currentMarker) {
+                    map.removeLayer(currentMarker);
+                    currentMarker = null;
+                }
+            }
+        };
+        // Режим добавления маркера
+        document.getElementById("add-marker").onclick = onAddMarker;
+        document.getElementById('place-coords').onclick = () => {
+            if (!isAddingMarker){
+                isAddingMarker = !isAddingMarker;
+            }
+            coordsButton.placeholder = 'теперь выбери точку на карте'
+            console.dir(coordsButton);
+            const btn = document.getElementById("add-marker");
+            if (isAddingMarker) {
+                btn.innerHTML = '<i class="fas fa-times"></i> Отменить';
+                btn.style.background =
+                    "linear-gradient(135deg, #e74c3c 0%, #ff6b6b 100%)";
+                showMessage(
+                    "Кликните на карте, чтобы добавить новое место",
+                    "info"
+                );
+            }
+        };
+
+
+        // Админ-панель
+        document.getElementById("admin-toggle").onclick = () => {
+            document.getElementById("admin-modal").style.display = "block";
+        };
+
+        // Закрытие модальных окон
+        document.querySelectorAll(".close-modal").forEach((btn) => {
+            btn.onclick = () => {
+                document.querySelectorAll(".modal").forEach((modal) => {
+                    modal.style.display = "none";
+                });
+            };
+        });
+
+        // Вкладки админки
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+            btn.onclick = () => {
+                const tab = btn.dataset.tab;
+
+                // Обновляем активные вкладки
+                document
+                    .querySelectorAll(".tab-btn")
+                    .forEach((b) => b.classList.remove("active"));
+                document
+                    .querySelectorAll(".tab-content")
+                    .forEach((c) => c.classList.remove("active"));
+
+                btn.classList.add("active");
+                document.getElementById(`${tab}-tab`).classList.add("active");
+            };
+        });
+
+        // Форма добавления нового места
+        // Замените обработчик формы
+        document.getElementById("new-place-form").onsubmit = async (e) => {
+            e.preventDefault();
+
+            const coords = document.getElementById("place-coords").value;
+            if (!coords) {
+                showMessage('Нажмите "добавить точку", чтобы выбрать координаты', "error");
+                return;
+            }
+
+            const [lat, lng] = coords.split(",").map(Number);
+
+            // Сначала загружаем фото если есть
+            let avatarFilename = Date.now() + '.png';
+            const photo = document.getElementById('avatar');
+
+            if (photo) {
+                try {
+                    // Преобразуем base64 в Blob
+                    const base64Data = photo.src.split(',')[1];
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'image/png' });
+
+                    // Создаем FormData для загрузки файла
+                    const formData = new FormData();
+                    formData.append('image', blob, avatarFilename);
+
+                    // Загружаем файл
+                    const uploadRes = await fetch('http://localhost:3000/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (uploadRes.ok) {
+                        const result = await uploadRes.text();
+                        // Получаем имя файла (можно вернуть JSON с именем файла)
+                        console.log('Файл загружен:', result);
+                    } else {
+                        throw new Error('Ошибка загрузки файла');
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки фото:', error);
+                    showMessage('Ошибка загрузки фото', 'error');
+                    return;
+                }
+            }
+
+            // Создаем объект места
+            const newPlace = {
+                name: document.getElementById("place-title").value,
+                title: document.getElementById("name").value,
+                description: document.getElementById("place-description").value,
+                coordinates: [lat, lng],
+                icon: document.getElementById("place-icon").value,
+                color: document.getElementById("place-color").value,
+                avatar: '/images/places/' + avatarFilename, // Сохраняем только имя файла
+                photos: [],
+                date: new Date().toISOString()
+            };
+
+            // Сохраняем место в базу
+            try {
+                const res = await fetch('http://localhost:3000/places', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newPlace)
+                });
+
+                if (res.ok) {
+                    const savedPlace = await res.json();
+                    places.push(savedPlace);
+                    addMarkersToMap();
+
+                    // Очищаем форму
+                    e.target.reset();
+                    document.getElementById("place-coords").value = "";
+                    photo?.remove();
+
+                    // Закрываем режим добавления
+                    isAddingMarker = false;
+                    document.getElementById("add-marker").innerHTML =
+                        '<i class="fas fa-plus"></i> зафигачить воспоминание';
+                    document.getElementById("add-marker").style.background = "";
+
+                    showMessage("Новое место добавлено!", "success");
+                } else {
+                    throw new Error('Ошибка сохранения места');
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения места:', error);
+                showMessage('Ошибка сохранения места', 'error');
+            }
+        };
+        // document.getElementById("new-place-form").onsubmit = async (e) => {
+        //     e.preventDefault();
+        //
+        //     const coords = document.getElementById("place-coords").value;
+        //     if (!coords) return;
+        //
+        //     const [lat, lng] = coords.split(",").map(Number);
+        //     const photo = document.getElementById('avatar');
+        //     const base64String = photo?.src;
+        //
+        //     const newPlace = {
+        //         name: document.getElementById("place-title").value,
+        //         title: document.getElementById("name").value,
+        //         description: document.getElementById("place-description").value,
+        //         coordinates: [lat, lng],
+        //         icon: document.getElementById("place-icon").value,
+        //         color: document.getElementById("place-color").value,
+        //         avatar: base64String,
+        //         photos: [],
+        //         date: new Date().toISOString()
+        //     };
+        //
+        //     const res = await fetch('http://localhost:3000/places', {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify(newPlace)
+        //     });
+        //
+        //     const savedPlace = await res.json();
+        //     places.push(savedPlace);
+        //     addMarkersToMap();
+        //
+        //     e.target.reset();
+        //     document.getElementById("place-coords").value = "";
+        //     photo?.remove();
+        //
+        //     showMessage("Новое место сохранено на сервере", "success");
+        // };
+
+
+        // Клик по карте вне модальных окон
+        document.querySelectorAll(".modal").forEach((modal) => {
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.style.display = "none";
+                }
+            };
+        });
+    }
+
+    // Переключение слоев карты
+    function switchLayer(layerType) {
+        if (currentLayer === layerType) return;
+
+        // Удаляем текущий слой
+        map.removeLayer(window.mapLayers[currentLayer]);
+
+        // Добавляем новый слой
+        window.mapLayers[layerType].addTo(map);
+        currentLayer = layerType;
+
+        // Обновляем кнопки
+        document
+            .getElementById("satellite-view")
+            .classList.toggle("active", layerType === "satellite");
+        document
+            .getElementById("map-view")
+            .classList.toggle("active", layerType === "map");
+    }
+
+    // Добавление нового маркера
+    function addNewMarker(latlng) {
+        // Удаляем предыдущий временный маркер
+        if (currentMarker) {
+            map.removeLayer(currentMarker);
+        }
+
+        // Создаём временный маркер
+        currentMarker = L.marker(latlng, {
+            icon: L.divIcon({
+                html: `<div class="marker-icon" style="background: #ff6b6b; border: 2px dashed white; animation: pulse 1s infinite;">
+                                    <i class="fas fa-plus"></i>
+                                 </div>`,
+                className: "temp-marker",
+                iconSize: [40, 40],
+            }),
+            draggable: true,
+        }).addTo(map);
+
+        // Обновляем координаты в форме
+        document.getElementById("place-coords").value = `${latlng.lat.toFixed(
+            6
+        )}, ${latlng.lng.toFixed(6)}`;
+
+        // Переходим на вкладку добавления места
+        document
+            .querySelectorAll(".tab-btn")
+            .forEach((b) => b.classList.remove("active"));
+        document
+            .querySelectorAll(".tab-content")
+            .forEach((c) => c.classList.remove("active"));
+
+        document
+            .querySelector('.tab-btn[data-tab="new"]')
+            .classList.add("active");
+
+        // Прокручиваем к форме
+        document.querySelector(".modal-content").scrollTop = 0;
+
+        // Даём возможность перетаскивать маркер
+        currentMarker.on("dragend", function () {
+            const newLatLng = this.getLatLng();
+            document.getElementById(
+                "place-coords"
+            ).value = `${newLatLng.lat.toFixed(6)}, ${newLatLng.lng.toFixed(6)}`;
+        });
+    }
+
+    // Показать информационную панель
+    function showInfoPanel(place) {
+        const panel = document.getElementById("info-panel");
+        const title = document.getElementById("info-title");
+        const description = document.getElementById("info-description");
+
+        title.textContent = place.title;
+        description.textContent = place.description.substring(0, 150) + "...";
+
+        panel.style.display = "block";
+
+        // Позиционируем рядом с курсором
+        panel.style.left = "20px";
+        panel.style.bottom = "20px";
+
+        // Настройка кнопок
+        document.getElementById("edit-location").onclick = () =>
+            editPlace(place.id);
+        document.getElementById("delete-location").onclick = () =>
+            deletePlace(place.id);
+    }
+
+    // Редактировать место
+    function editPlace(placeId) {
+        const place = places.find((p) => p.id === placeId);
+        if (!place) return;
+
+        // Заполняем форму редактирования
+        document.getElementById("place-title").value = place.title;
+        document.getElementById("place-description").value = place.description;
+        document.getElementById(
+            "place-coords"
+        ).value = `${place.coordinates[0]}, ${place.coordinates[1]}`;
+        document.getElementById("place-icon").value = place.icon;
+        document.getElementById("place-color").value = place.color;
+
+        // Удаляем старое место
+        deletePlace(placeId, false);
+
+        // Показываем форму
+        document.getElementById("admin-modal").style.display = "block";
+        document
+            .querySelectorAll(".tab-btn")
+            .forEach((b) => b.classList.remove("active"));
+        document
+            .querySelectorAll(".tab-content")
+            .forEach((c) => c.classList.remove("active"));
+
+        document
+            .querySelector('.tab-btn[data-tab="new"]')
+            .classList.add("active");
+        document.getElementById("new-tab").classList.add("active");
+
+        showMessage("Редактируйте место", "info");
+    }
+
+    // Удалить место
+    function deletePlace(placeId, showMessage = true) {
+        if (confirm("Удалить это место?")) {
+            places = places.filter((p) => p.id !== placeId);
+            addMarkersToMap();
+
+            if (showMessage) {
+                showMessage("Место удалено", "success");
+            }
+
+            document.getElementById("info-panel").style.display = "none";
+        }
+    }
+
+    function showMessage(text, type = "info") {
+        // Удаляем предыдущее сообщение
+        const oldMsg = document.querySelector(".message");
+        if (oldMsg) oldMsg.remove();
+
+        // Создаём новое сообщение
+        const msg = document.createElement("div");
+        msg.className = `message ${type}`;
+        msg.innerHTML = `
+                      <i class="fas fa-${
+            type === "success"
+                ? "check-circle"
+                : type === "error"
+                    ? "exclamation-circle"
+                    : "info-circle"
+        }"></i>
+                      ${text}
+                  `;
+        msg.style.background =
+            type === "success"
+                ? "#27ae60"
+                : type === "error"
+                    ? "#e74c3c"
+                    : "#3498db";
+
+        document.body.appendChild(msg);
+
+        // Автоматически удаляем через 5 секунд
+        setTimeout(() => {
+            if (msg.parentNode) {
+                msg.style.opacity = "0";
+                msg.style.transform = "translateX(100%)";
+                setTimeout(() => msg.remove(), 300);
+            }
+        }, 5000);
+    }
+
+    function openImage(url) {
+        window.open(url, "_blank");
+    }
+
+    // Глобальные функции для HTML
+    window.editPlace = editPlace;
+    window.deletePlace = deletePlace;
+    window.openImage = openImage;
+
+    // Инициализация при загрузке
+    document.addEventListener("DOMContentLoaded", initMap);
+
+</script>
+<script>
+    // JavaScript runs after DOM is fully loaded (wrapped in DOMContentLoaded)
+    document.addEventListener('DOMContentLoaded', function () {
+        // Element references - safe because DOMContentLoaded ensured elements exist
+        const openModalBtn = document.getElementById('openModalBtn');
+        const avatarModal = document.getElementById('avatarModal');
+        const closeBtn = document.getElementById('closeBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const video = document.getElementById('cameraVideo');
+        const videoContainer = document.getElementById('videoContainer');
+        const canvas = document.getElementById('captureCanvas');
+        const output = document.getElementById('output');
+        const modalError = document.getElementById('modalError');
+
+        // Track current media stream so we can stop it reliably
+        let currentStream = null;
+
+        // Always mirror the preview (typical selfie experience). We'll also mirror the capture
+        const previewShouldBeMirrored = true;
+
+        // Show modal (only toggles classes; modal is never removed from DOM)
+        function showModal() {
+            avatarModal.classList.remove('hidden');
+            avatarModal.classList.add('flex');
+            modalError.classList.add('hidden');
+            startCamera().catch(handleErrorInModal);
+        }
+
+        // Hide modal and stop camera stream (no leaks)
+        function hideModal() {
+            stopCameraStream();
+            avatarModal.classList.remove('flex');
+            avatarModal.classList.add('hidden');
+            modalError.classList.add('hidden');
+        }
+
+        // Stop and release any active tracks, null out srcObject
+        function stopCameraStream() {
+            if (currentStream) {
+                try {
+                    currentStream.getTracks().forEach(track => track.stop());
+                } catch (e) {
+                    // swallow any exception - keep UI silent, no console errors required
+                }
+                currentStream = null;
+            }
+            // Disconnect video element from stream
+            try {
+                video.srcObject = null;
+            } catch (e) { /* ignore */
+            }
+        }
+
+        // Start camera with front-facing preference; ensure no stream leaks on reopen
+        async function startCamera() {
+            // If an old stream exists, stop it first
+            stopCameraStream();
+
+            // Request user-facing camera if available
+            const constraints = {
+                video: {
+                    facingMode: {ideal: "user"} // prefer front camera
+                },
+                audio: false
+            };
+
+            // getUserMedia may throw — bubble up to caller
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            currentStream = stream;
+
+            // Attach to video element
+            video.srcObject = stream;
+
+            // Prefer to mirror preview for selfie feel
+            if (previewShouldBeMirrored) {
+                video.style.transform = 'scaleX(-1)';
+            } else {
+                video.style.transform = '';
+            }
+
+            // Play (some browsers require play call)
+            await video.play();
+
+            // Ensure video has metadata for dimensions — the capture button will typically be used after preview is visible.
+            // No further action needed here.
+        }
+
+        // Compute a center-cover cropping rectangle on the video to fill a square of 'size'
+        function computeCoverCrop(videoWidth, videoHeight, size) {
+            // ratio to scale video so it covers the square
+            const ratio = Math.max(size / videoWidth, size / videoHeight);
+            const srcW = size / ratio;
+            const srcH = size / ratio;
+            const srcX = (videoWidth - srcW) / 2;
+            const srcY = (videoHeight - srcH) / 2;
+            return {srcX, srcY, srcW, srcH};
+        }
+
+        // Capture still image from video into circular image and append base64 image into #output
+        function captureAvatar() {
+            // Determine the displayed circle size in pixels (width == height)
+            const rect = videoContainer.getBoundingClientRect();
+            const size = Math.round(rect.width); // container is square (w-80 h-80), use width in px
+
+            // Ensure we have video frame dimensions
+            const vW = video.videoWidth || 640;
+            const vH = video.videoHeight || 480;
+
+            // Put canvas to exact pixel size we want to create (square)
+            canvas.width = size;
+            canvas.height = size;
+
+            const ctx = canvas.getContext('2d');
+
+            // Mirror drawing if preview was mirrored so the saved image visually matches the preview
+            ctx.save();
+            if (previewShouldBeMirrored) {
+                ctx.translate(size, 0);
+                ctx.scale(-1, 1);
+            }
+
+            // Create circular clip in the (possibly transformed) coordinate system
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            // Compute source crop from raw video to fill the square (center-cover)
+            const {srcX, srcY, srcW, srcH} = computeCoverCrop(vW, vH, size);
+
+            // drawImage(source, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+            ctx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, size, size);
+
+            ctx.restore();
+
+            // Export as PNG data URL (base64)
+            const dataUrl = canvas.toDataURL('image/png');
+
+            // Create image element styled as a circular avatar, sized to match preview
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.id = 'avatar';
+            img.alt = 'avatar';
+            img.width = size;
+            img.height = size;
+            img.className = 'rounded-full shadow-lg';
+            img.style.objectFit = 'cover';
+            img.style.display = 'block';
+            img.style.border = '4px solid white';
+
+            // Clear previous output and insert the new image as a child (final image saved into #output)
+            output.innerHTML = '';
+            output.appendChild(img);
+
+            // Optionally close modal after capture (still stop stream)
+            hideModal();
+        }
+
+        // Display an inline error inside the modal
+        function handleErrorInModal(error) {
+            modalError.textContent = String(error && (error.message || error.name) || 'Camera error');
+            modalError.classList.remove('hidden');
+        }
+
+        // Wire up events
+        openModalBtn.addEventListener('click', showModal);
+        closeBtn.addEventListener('click', hideModal);
+        captureBtn.addEventListener('click', function () {
+            try {
+                captureAvatar();
+            } catch (err) {
+                handleErrorInModal(err);
+            }
+        });
+
+        // Ensure we stop stream if the window / tab is closed or navigated away
+        window.addEventListener('beforeunload', function () {
+            stopCameraStream();
+        });
+
+        // Ensure stream is stopped if modal is hidden by other means (defensive)
+        // (Not strictly necessary, but safe)
+        const observer = new MutationObserver(() => {
+            if (avatarModal.classList.contains('hidden')) {
+                // modal hidden -> ensure stream stopped
+                stopCameraStream();
+            }
+        });
+        observer.observe(avatarModal, {attributes: true, attributeFilter: ['class']});
+    });
+</script>
+</body>
+</html>
