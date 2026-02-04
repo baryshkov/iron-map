@@ -785,7 +785,7 @@ padding-left: 10px; padding-right: 10px; cursor: pointer;"
     }
 
     async function loadPlaces() {
-        const res = await fetch('http://localhost:3000/places');
+        const res = await fetch('/places');
         const data = await res.json();
         places = data;
         addMarkersToMap(places);
@@ -996,7 +996,7 @@ padding-left: 10px; padding-right: 10px; cursor: pointer;"
                     formData.append('image', blob, avatarFilename);
 
                     // Загружаем файл
-                    const uploadRes = await fetch('http://localhost:3000/upload', {
+                    const uploadRes = await fetch('/upload', {
                         method: 'POST',
                         body: formData
                     });
